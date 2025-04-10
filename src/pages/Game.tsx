@@ -563,7 +563,7 @@ const Game = () => {
           </div>
           
           <div className="flex flex-col items-center justify-center">
-            <motion.div
+        <motion.div
               key={question}
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -580,7 +580,7 @@ const Game = () => {
               >
                 {question}
               </QuestionCard>
-            </motion.div>
+        </motion.div>
             
             <div className="button-container">
               <Button 
@@ -596,8 +596,8 @@ const Game = () => {
                 <span className="magic-text">Dare</span>
               </Button>
             </div>
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
       </div>
     </StyledWrapper>
   );
