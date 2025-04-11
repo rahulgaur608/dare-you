@@ -13,42 +13,73 @@ const QuestionCard = ({ children, type, intensity, onClick }: QuestionCardProps)
     if (type === 'truth') {
       switch (intensity) {
         case 'casual':
-          return { bg: '#2c4870', light: '#3a5c8c', boxShadow: 'rgba(42, 72, 112, 0.5)' };
+          return { bg: '#4a2c84', light: '#6a41b0', boxShadow: 'rgba(74, 44, 132, 0.7)', accent: '#8a6cd9' };
         case 'medium':
-          return { bg: '#482c70', light: '#5c3a8c', boxShadow: 'rgba(72, 44, 112, 0.5)' };
+          return { bg: '#8326a9', light: '#a53dd0', boxShadow: 'rgba(131, 38, 169, 0.7)', accent: '#c77df5' };
         case 'spicy':
-          return { bg: '#703c2c', light: '#8c4e3a', boxShadow: 'rgba(112, 60, 44, 0.5)' };
+          return { bg: '#aa2e43', light: '#d4384e', boxShadow: 'rgba(170, 46, 67, 0.7)', accent: '#ff6c82' };
         case 'extreme':
-          return { bg: '#702c4c', light: '#8c3a60', boxShadow: 'rgba(112, 44, 76, 0.5)' };
+          return { bg: '#b61c30', light: '#e52338', boxShadow: 'rgba(182, 28, 48, 0.8)', accent: '#ff4a5f' };
         default:
-          return { bg: '#2c4870', light: '#3a5c8c', boxShadow: 'rgba(42, 72, 112, 0.5)' };
+          return { bg: '#4a2c84', light: '#6a41b0', boxShadow: 'rgba(74, 44, 132, 0.7)', accent: '#8a6cd9' };
       }
     } else {
       switch (intensity) {
         case 'casual':
-          return { bg: '#2c5c60', light: '#3a7478', boxShadow: 'rgba(44, 92, 96, 0.5)' };
+          return { bg: '#4752c4', light: '#5a68e5', boxShadow: 'rgba(71, 82, 196, 0.7)', accent: '#7c8aff' };
         case 'medium':
-          return { bg: '#602c54', light: '#783a6c', boxShadow: 'rgba(96, 44, 84, 0.5)' };
+          return { bg: '#7036b1', light: '#8b42dd', boxShadow: 'rgba(112, 54, 177, 0.7)', accent: '#b273ff' };
         case 'spicy':
-          return { bg: '#703828', light: '#8c4a34', boxShadow: 'rgba(112, 56, 40, 0.5)' };
+          return { bg: '#b63547', light: '#db3d53', boxShadow: 'rgba(182, 53, 71, 0.7)', accent: '#ff7a8c' };
         case 'extreme':
-          return { bg: '#4a2860', light: '#603478', boxShadow: 'rgba(74, 40, 96, 0.5)' };
+          return { bg: '#cc1f2d', light: '#ef2334', boxShadow: 'rgba(204, 31, 45, 0.8)', accent: '#ff5a69' };
         default:
-          return { bg: '#2c5c60', light: '#3a7478', boxShadow: 'rgba(44, 92, 96, 0.5)' };
+          return { bg: '#4752c4', light: '#5a68e5', boxShadow: 'rgba(71, 82, 196, 0.7)', accent: '#7c8aff' };
       }
     }
   };
 
   const colors = getCardColors();
 
+  const getLevelIndicator = () => {
+    const dots = [];
+    let level = 1;
+    
+    switch(intensity) {
+      case 'casual': level = 1; break;
+      case 'medium': level = 2; break;
+      case 'spicy': level = 3; break;
+      case 'extreme': level = 4; break;
+      default: level = 1;
+    }
+    
+    for (let i = 0; i < 4; i++) {
+      dots.push(
+        <div 
+          key={i} 
+          className={`level-dot ${i < level ? 'active' : ''}`} 
+          style={{ backgroundColor: i < level ? colors.accent : 'rgba(255, 255, 255, 0.2)' }}
+        />
+      );
+    }
+    
+    return (
+      <div className="level-indicator">
+        {dots}
+      </div>
+    );
+  };
+
   return (
     <StyledWrapper 
       bgColor={colors.bg} 
       lightColor={colors.light} 
       boxShadowColor={colors.boxShadow}
+      accentColor={colors.accent}
       onClick={onClick}
+      className={`card-${intensity}`}
     >
-      <div className="card">
+      <div className={`card card-${intensity}`}>
         <div className="overlay" />
         <div className="circle">
           <svg xmlnsXlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="23 29 78 60" height="60px" width="78px">
@@ -66,7 +97,13 @@ const QuestionCard = ({ children, type, intensity, onClick }: QuestionCardProps)
             </g>
           </svg>
         </div>
-        <p className="card-title">{type.toUpperCase()}</p>
+        
+        {getLevelIndicator()}
+        
+        <div className="card-type-badge" style={{ backgroundColor: colors.accent }}>
+          {type.toUpperCase()}
+        </div>
+        
         <p className="card-content">{children}</p>
       </div>
     </StyledWrapper>
@@ -77,6 +114,7 @@ interface StyledWrapperProps {
   bgColor: string;
   lightColor: string;
   boxShadowColor: string;
+  accentColor: string;
 }
 
 const StyledWrapper = styled.div<StyledWrapperProps>`
@@ -85,13 +123,14 @@ const StyledWrapper = styled.div<StyledWrapperProps>`
     --bg-color-light: ${props => props.lightColor};
     --text-color-hover: #fff;
     --box-shadow-color: ${props => props.boxShadowColor};
+    --accent-color: ${props => props.accentColor};
   }
 
   .card {
     width: 280px;
     height: 370px;
     background: var(--bg-color);
-    border-radius: 20px;
+    border-radius: 32px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -107,6 +146,41 @@ const StyledWrapper = styled.div<StyledWrapperProps>`
     cursor: pointer;
     border: none;
     position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .level-indicator {
+    display: flex;
+    margin: 12px 0;
+    gap: 6px;
+    z-index: 1000;
+  }
+
+  .level-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+
+  .level-dot.active {
+    transform: scale(1.3);
+    box-shadow: 0 0 10px var(--accent-color);
+  }
+
+  .card-type-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    letter-spacing: 1px;
   }
 
   .card::after {
@@ -198,10 +272,11 @@ const StyledWrapper = styled.div<StyledWrapperProps>`
   }
 
   .card-content {
-    font-size: 18px;
-    color: #e0e0e0;
-    margin-top: 15px;
-    padding: 0 20px;
+    font-size: 22px;
+    font-weight: 500;
+    color: #ffffff;
+    margin-top: 10px;
+    padding: 0 25px;
     text-align: center;
     z-index: 1000;
     transition: color 0.3s ease-out;
@@ -209,6 +284,7 @@ const StyledWrapper = styled.div<StyledWrapperProps>`
     overflow-y: auto;
     line-height: 1.4;
     animation: textAppear 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
   @keyframes textAppear {

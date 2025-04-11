@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import { Button } from '@/components/ui/button';
 import QuestionCard from '@/components/QuestionCard';
 import { getRandomQuestion, QuestionType, IntensityLevel } from '@/lib/questionService';
+import SwipeHandler from '../components/SwipeHandler';
+import HexLoader from '@/components/HexLoader';
 
 const StyledWrapper = styled.div<{ intensity: IntensityLevel }>`
   .min-h-screen {
@@ -216,8 +218,8 @@ const StyledWrapper = styled.div<{ intensity: IntensityLevel }>`
         default: return '#d8a0ff';
       }
     }};
-    padding: 0.7rem 1.5rem;
-    border-radius: 15px;
+    padding: 0.8rem 1.8rem;
+    border-radius: 24px;
     font-size: 1.1rem;
     font-weight: bold;
     box-shadow: 
@@ -228,12 +230,13 @@ const StyledWrapper = styled.div<{ intensity: IntensityLevel }>`
     overflow: hidden;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
   
   .player-avatar {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: ${props => {
       switch (props.intensity) {
@@ -252,6 +255,7 @@ const StyledWrapper = styled.div<{ intensity: IntensityLevel }>`
       inset -2px -2px 4px rgba(255, 255, 255, 0.05);
     position: relative;
     overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   .player-avatar::before {
@@ -357,8 +361,8 @@ const StyledWrapper = styled.div<{ intensity: IntensityLevel }>`
     padding: 0.7rem;
     font-weight: bold;
     border-radius: 50%;
-    width: 42px;
-    height: 42px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -367,7 +371,7 @@ const StyledWrapper = styled.div<{ intensity: IntensityLevel }>`
       6px 6px 12px rgba(0, 0, 0, 0.25),
       -6px -6px 12px rgba(255, 255, 255, 0.1),
       inset 1px 1px 1px rgba(255, 255, 255, 0.1);
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     font-size: 1.2rem;
     
     &:hover {
@@ -447,6 +451,9 @@ const Game = () => {
   const [questionType, setQuestionType] = useState<QuestionType>('truth');
   const [playerTurn, setPlayerTurn] = useState<number>(1);
   const [animatePlayer, setAnimatePlayer] = useState<boolean>(true);
+  const [colorCycle, setColorCycle] = useState<number>(0);
+  const colorTimerRef = useRef<number | null>(null);
+  const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null);
   
   // Get state from location or use defaults
   const intensity = (location.state?.intensity || 'casual') as IntensityLevel;
@@ -454,7 +461,41 @@ const Game = () => {
   
   useEffect(() => {
     newQuestion('truth');
+    
+    // Start color cycle
+    if (colorTimerRef.current) {
+      window.clearInterval(colorTimerRef.current);
+    }
+    
+    colorTimerRef.current = window.setInterval(() => {
+      setColorCycle(prev => (prev + 1) % 6);
+    }, 5000);
+    
+    return () => {
+      if (colorTimerRef.current) {
+        window.clearInterval(colorTimerRef.current);
+      }
+    };
   }, []);
+  
+  // Get color variations based on intensity and color cycle
+  const getColorVariations = () => {
+    const variations = {
+      casual: [
+        '#2a1a30', '#2d1b35', '#2f1c3a', '#311d3f', '#331e44', '#2d1b35'
+      ],
+      medium: [
+        '#321a2e', '#371d33', '#3c2038', '#41233d', '#462642', '#371d33'
+      ],
+      spicy: [
+        '#3a1a26', '#3f1c2a', '#441e2e', '#492032', '#4e2236', '#3f1c2a'
+      ],
+      extreme: [
+        '#3f1520', '#461723', '#4d1926', '#541b29', '#5b1d2c', '#461723'
+      ]
+    };
+    return variations[intensity][colorCycle];
+  };
   
   const newQuestion = (type: QuestionType) => {
     setQuestionType(type);
@@ -473,6 +514,8 @@ const Game = () => {
   const handleNextQuestion = (type: QuestionType) => {
     newQuestion(type);
     nextPlayer();
+    // Advance color cycle on question change
+    setColorCycle(prev => (prev + 1) % 6);
   };
   
   const handleBack = () => {
@@ -515,89 +558,106 @@ const Game = () => {
     return intensityMessages[messageIndex];
   };
 
+  // Modified function to handle swipe directions
+  const handleSwipe = (direction: 'left' | 'right') => {
+    // Left swipe for Truth, Right swipe for Dare
+    handleNextQuestion(direction === 'left' ? 'truth' : 'dare');
+  };
+
   return (
     <StyledWrapper intensity={intensity}>
-      <div className="min-h-screen flex flex-col items-center justify-center relative px-4 py-8">
-        {/* Background blobs with 3D effect */}
-        <div className="blob-bg top-0 left-0 opacity-70 blur-xl" />
-        <div className="blob-bg bottom-0 right-0 opacity-70 blur-xl" />
+      <div className={`min-h-screen intensity-${intensity}`}>
+        <div className="color-spot-1"></div>
+        <div className="color-spot-2"></div>
         
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="container max-w-4xl z-10"
-        >
-          <div className="flex justify-between items-center mb-6">
-            <Button 
-              variant="outline" 
+        {/* Add hexagonal loader with matching intensity */}
+        <HexLoader intensity={intensity} opacity={0.2} />
+        
+        <div className="container mx-auto pt-6 pb-16 relative z-10">
+          <div className="flex flex-col items-center px-4">
+            {/* Back button */}
+            <Button
+              variant="ghost"
               onClick={handleBack}
               className="back-button"
-              aria-label="Back to home"
+              aria-label="Go back"
             >
-              <svg className="arrow-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-6 w-6"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </Button>
-            {animatePlayer ? (
-              <div className="font-bold player-indicator magic-player-in">
-                <div className="player-avatar-container">
-                  <div className="crown">👑</div>
-                  <div className="player-avatar">
-                    <span>{playerTurn}</span>
-                  </div>
-                </div>
-                <span className="turn-text">{getTurnMessage()}</span>
-              </div>
-            ) : (
-              <div className="font-bold player-indicator" style={{ opacity: 0 }}>
-                <div className="player-avatar-container">
-                  <div className="crown">👑</div>
-                  <div className="player-avatar">
-                    <span>{playerTurn}</span>
-                  </div>
-                </div>
-                <span className="turn-text">{getTurnMessage()}</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex flex-col items-center justify-center">
-        <motion.div
-              key={question}
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 300, 
-                damping: 15 
-              }}
-              className="magic-question-in"
+
+            <motion.h1
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-3xl md:text-4xl font-bold text-center mt-8 mb-8 magic-text"
             >
-              <QuestionCard 
-                type={questionType}
-                intensity={intensity}
-              >
-                {question}
-              </QuestionCard>
-        </motion.div>
-            
-            <div className="button-container">
-              <Button 
-                className="button-truth"
-                onClick={() => handleNextQuestion('truth')}
-              >
-                <span className="magic-text">Truth</span>
-              </Button>
-              <Button 
-                className="button-dare"
-                onClick={() => handleNextQuestion('dare')}
-              >
-                <span className="magic-text">Dare</span>
-              </Button>
+              {intensity.charAt(0).toUpperCase() + intensity.slice(1)} Mode
+            </motion.h1>
+
+            <div className="player-indicator mb-8">
+              <div className="player-avatar">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <span>{getTurnMessage()}</span>
             </div>
+
+            {/* SwipeHandler with improved UI */}
+            <div className="w-full max-w-md">
+              <SwipeHandler
+                onSwipeLeft={() => handleSwipe('left')}
+                onSwipeRight={() => handleSwipe('right')}
+              >
+                <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  {question ? (
+                    <motion.div
+                      key={question}
+                      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                      transition={{ duration: 0.5 }}
+                      className="magic-question-in relative"
+                    >
+                      <QuestionCard
+                        type={questionType}
+                        intensity={intensity}
+                      >
+                        {question}
+                      </QuestionCard>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-center p-8 max-w-md bg-opacity-20 bg-black rounded-3xl backdrop-blur-sm border border-white/10 shadow-xl"
+                    >
+                      <h2 className="text-2xl font-semibold mb-4">Swipe for Questions</h2>
+                      <p className="text-lg">Swipe left for Truth, right for Dare!</p>
+                    </motion.div>
+                  )}
+                </div>
+              </SwipeHandler>
             </div>
-          </motion.div>
+          </div>
+        </div>
       </div>
     </StyledWrapper>
   );
